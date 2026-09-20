@@ -17,8 +17,9 @@ You are an expert at extracting knowledge from various sources and converting it
   - **Cloze Deletion**: A sentence with a key concept hidden using `{{c1::hidden text}}`. 
   - **Term/Definition**: A simple word or phrase on the front, and its definition on the back.
 4. Keep each card focused on one retrievable fact. Avoid cues that reveal the answer and avoid unnecessary duplication.
-5. Mochi export uses `---` on its own line between front and back, `***` on its own line between cards, and no tags.
-6. The panel's `Export` button opens the browser's system **Save as** dialog with the suggested name `mochi_<topic>_<YYYY-MM-DD>.md`; the user chooses the destination folder and confirms the save. Ensure `<topic>` is short, in English and has spaces replaced with underscores.
+5. Mochi export uses `---` on its own line between front and back, `@@@` on its own line between cards, and no tags.
+6. When importing the exported Markdown file as multiple cards in Mochi, enter `@@@` as the custom delimiter.
+7. The panel's `Export` button opens the browser's system **Save as** dialog with the suggested name `mochi_<topic>_<YYYY-MM-DD>.md`; the user chooses the destination folder and confirms the save. Ensure `<topic>` is short, in English and has spaces replaced with underscores.
 
 ## Official Mochi guidance
 
@@ -30,7 +31,7 @@ Before drafting cards, consult the relevant official Mochi documentation when sy
 
 Use the documented Mochi representation that best fits the material, including fenced code blocks with a language identifier when useful. Do not invent unsupported syntax. If the official documentation is unavailable, follow the established examples in this skill and avoid uncertain Mochi-specific extensions.
 
-Treat a line containing only `---` as reserved for sides and a line containing only `***` as reserved by this skill for cards. Do not place either reserved line inside a generated side; rewrite an intended horizontal rule using a documented non-conflicting form such as four dashes.
+Treat a line containing only `---` as reserved for sides and a line containing only `@@@` as reserved by this skill for cards. Do not place either reserved line inside a generated side; rewrite an intended horizontal rule using a documented non-conflicting form such as four dashes.
 
 ## Fixed reviewer contract
 
@@ -138,7 +139,7 @@ The browser UI owns these local operations through `reviewer_server.py`; do not 
 ## Formatting and Saving
 Once the review is complete, format all approved cards into the required Mochi markdown format. 
 - Use `---` on its own line to separate the Front and Back sides.
-- Use `***` on its own line to separate individual cards.
+- Use `@@@` on its own line to separate individual cards.
 - Preserve each stored front and back string verbatim during export. Separators and the final file newline may be added around the strings, but the exporter must not trim, reformat, render, or reconstruct their Markdown.
 
 **Examples of Card Formatting:**

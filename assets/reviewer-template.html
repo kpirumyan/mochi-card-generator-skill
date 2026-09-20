@@ -730,7 +730,7 @@
         const blocks = state.cards.map(card =>
           `${String(card.front || '')}\n---\n${String(card.back || '')}`
         );
-        return `${blocks.join('\n\n***\n\n')}\n`;
+        return `${blocks.join('\n\n@@@\n\n')}\n`;
       }
 
       exportButton.addEventListener('click', async () => {

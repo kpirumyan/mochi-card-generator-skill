@@ -10,7 +10,7 @@ It creates a local reviewer alongside each deck, so cards can be edited and anno
 - Selects an appropriate card form: question/answer, term/definition, or cloze deletion.
 - Preserves card Markdown, including syntax-highlighted code blocks.
 - Opens a local reviewer with card navigation, editable front and back sides, line and side comments, and editable saved comments.
-- Exports the approved collection as Mochi-compatible Markdown using `---` between sides and `***` between cards.
+- Exports the approved collection as Mochi-compatible Markdown using `---` between sides and `@@@` between cards. Enter `@@@` as the custom delimiter when importing multiple cards from one Markdown file in Mochi.
 
 ## Use it in Codex
 
@@ -43,4 +43,3 @@ scripts/reviewer_server.py       Local reviewer HTTP server
 ## Development notes
 
 The reviewer template is deliberately fixed. Deck-specific content, comments, and review state belong in `deck-state.json`, not in the template. When changing the reviewer, keep the browser client and `reviewer_server.py` actions in sync, then validate the affected Python and JavaScript paths.
-

@@ -151,7 +151,7 @@ def export_state(state: dict[str, Any], output: Path | None = None) -> Path:
         filename = f"mochi_{slugify_topic(state['topic'])}_{dt.date.today().isoformat()}.md"
         output = export_directory / filename
     blocks = [f"{card['front']}\n---\n{card['back']}" for card in cards]
-    atomic_write_text(output, "\n\n***\n\n".join(blocks) + "\n")
+    atomic_write_text(output, "\n\n@@@\n\n".join(blocks) + "\n")
     return output.resolve()
 
 
