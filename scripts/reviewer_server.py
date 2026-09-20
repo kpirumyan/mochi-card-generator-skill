@@ -18,6 +18,7 @@ from reviewer_state import StateError, atomic_write_json, export_state, load_sta
 
 
 MAX_BODY_BYTES = 1_000_000
+BLOCK_KINDS = {"code", "heading", "rule", "quote", "list", "paragraph"}
 
 
 def content_lines(text: str) -> list[str]:
@@ -125,17 +126,33 @@ class Handler(BaseHTTPRequestHandler):
             card_id = require_text(payload.get("cardId"), "cardId")
             side = payload.get("side")
             scope = payload.get("scope")
-            if card_id not in by_id or side not in {"front", "back"} or scope not in {"side", "line"}:
+            if card_id not in by_id or side not in {"front", "back"} or scope not in {"side", "line", "block"}:
                 raise StateError("Invalid comment target")
             line_number = payload.get("lineNumber") if scope == "line" else None
-            snapshot = None
+            line_snapshot = None
+            block_start = payload.get("blockStart") if scope == "block" else None
+            block_end = payload.get("blockEnd") if scope == "block" else None
+            block_kind = payload.get("blockKind") if scope == "block" else None
+            block_snapshot = None
+            lines = content_lines(by_id[card_id][side])
             if scope == "line":
                 if not isinstance(line_number, int) or line_number < 0:
                     raise StateError("lineNumber must be non-negative")
-                lines = content_lines(by_id[card_id][side])
                 if line_number >= len(lines):
                     raise StateError("The target line no longer exists")
-                snapshot = lines[line_number]
+                line_snapshot = lines[line_number]
+            elif scope == "block":
+                if (
+                    not isinstance(block_start, int)
+                    or not isinstance(block_end, int)
+                    or block_start < 0
+                    or block_end < block_start
+                    or block_end >= len(lines)
+                ):
+                    raise StateError("The target block no longer exists")
+                if block_kind not in BLOCK_KINDS:
+                    raise StateError("Invalid blockKind")
+                block_snapshot = "\n".join(lines[block_start : block_end + 1])
             comments.append(
                 {
                     "id": f"comment-{uuid.uuid4().hex}",
@@ -143,7 +160,11 @@ class Handler(BaseHTTPRequestHandler):
                     "side": side,
                     "scope": scope,
                     "lineNumber": line_number,
-                    "lineSnapshot": snapshot,
+                    "lineSnapshot": line_snapshot,
+                    "blockStart": block_start,
+                    "blockEnd": block_end,
+                    "blockKind": block_kind,
+                    "blockSnapshot": block_snapshot,
                     "text": require_text(payload.get("text"), "text"),
                     "createdAt": utc_now(),
                 }

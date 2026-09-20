@@ -17,6 +17,7 @@ from typing import Any
 
 SCHEMA_VERSION = 1
 DEFAULT_EXPORT_DIRECTORY = Path(r"G:\My Drive\MochiCards")
+BLOCK_KINDS = {"code", "heading", "rule", "quote", "list", "paragraph"}
 
 
 class StateError(RuntimeError):
@@ -104,11 +105,24 @@ def validate_state(state: Any) -> dict[str, Any]:
             raise StateError(f"comments[{position}] targets a missing card")
         if comment.get("side") not in {"front", "back"}:
             raise StateError(f"comments[{position}].side must be front or back")
-        if comment.get("scope") not in {"side", "line"}:
-            raise StateError(f"comments[{position}].scope must be side or line")
+        if comment.get("scope") not in {"side", "line", "block"}:
+            raise StateError(f"comments[{position}].scope must be side, line, or block")
         if comment.get("scope") == "line":
             if not isinstance(comment.get("lineNumber"), int) or comment["lineNumber"] < 0:
                 raise StateError(f"comments[{position}].lineNumber must be non-negative")
+        if comment.get("scope") == "block":
+            block_start = comment.get("blockStart")
+            block_end = comment.get("blockEnd")
+            if (
+                not isinstance(block_start, int)
+                or not isinstance(block_end, int)
+                or block_start < 0
+                or block_end < block_start
+            ):
+                raise StateError(f"comments[{position}] must have a valid block range")
+            if comment.get("blockKind") not in BLOCK_KINDS:
+                raise StateError(f"comments[{position}].blockKind is invalid")
+            require_text(comment.get("blockSnapshot"), f"comments[{position}].blockSnapshot")
         require_text(comment.get("text"), f"comments[{position}].text")
     if cards:
         state["currentIndex"] = min(state["currentIndex"], len(cards) - 1)

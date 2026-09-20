@@ -34,7 +34,7 @@ Treat a line containing only `---` as reserved for sides and a line containing o
 
 ## Fixed reviewer contract
 
-The reviewer UI is the approved `v10` design stored in `assets/reviewer-template.html`. It is the visual source of truth.
+The reviewer UI is the approved `v11` design stored in `assets/reviewer-template.html`. It is the visual source of truth.
 
 - Never regenerate, restyle, or patch the reviewer HTML, CSS, layout, colors, controls, or interaction states while creating or revising a deck.
 - Create each reviewer artifact by running `scripts/reviewer_state.py init`; that command copies the fixed template byte-for-byte.
@@ -92,7 +92,7 @@ If filesystem permission is needed for the deck workspace, request only the exac
 When the user asks to revise cards from reviewer comments:
 
 1. Resolve the active state from `<cwd>/work/mochi-reviewer/active-deck.json`, unless the current conversation already identifies the exact `deck-state.json`.
-2. Read the state and all pending comments. Group comments by card, side, and line. Treat `lineSnapshot` as context, not as a replacement for the current card text.
+2. Read the state and all pending comments. Group comments by card, side, and semantic Markdown block. Legacy line comments may still appear in older states. Treat `blockSnapshot` and `lineSnapshot` as context, not as replacements for the current card text.
 3. Regenerate only cards that have actionable comments. Preserve each card `id` and all unaffected cards verbatim.
 4. Create an updates JSON file:
 
@@ -126,7 +126,7 @@ The fixed reviewer provides:
 - one-card navigation, count, and progress;
 - rendered Markdown preview while keeping the source editor lossless;
 - direct editing of front and back;
-- whole-side and line comments;
+- whole-side and semantic Markdown-block comments, with one comment control per paragraph, heading, list item, quote, rule, or fenced code block;
 - readable comment list with deletion;
 - editing of existing comments from the comment list;
 - immediate card deletion;

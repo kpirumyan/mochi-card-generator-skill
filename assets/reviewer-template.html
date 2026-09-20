@@ -45,7 +45,7 @@
     .header-actions { display: flex; align-items: center; gap: 8px; }
     .mochi-eyebrow { color: var(--mochi-accent); font-size: 11px; font-weight: 700; letter-spacing: .12em; }
     #mochi-reviewer h1 { margin: 5px 0 0; font-size: 18px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
-    .mochi-export, .mochi-button, .mochi-edit, .mochi-delete, .mochi-comment-action, .line-comment, .comment-close, .review-arrow, .comment-edit, .comment-delete {
+    .mochi-export, .mochi-button, .mochi-edit, .mochi-delete, .mochi-comment-action, .block-comment, .comment-close, .review-arrow, .comment-edit, .comment-delete {
       border: 0;
       font: inherit;
       color: inherit;
@@ -77,7 +77,7 @@
     .mochi-comment-action { color: var(--mochi-comment); }
     .mochi-edit:hover { color: var(--mochi-accent); transform: translateY(-1px); }
     .mochi-comment-action:hover { background: var(--mochi-comment-soft); color: var(--mochi-comment); transform: translateY(-1px); }
-    .side-comment-count, .line-comment-count { min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px; background: var(--mochi-comment); color: light-dark(#fff, #111a28); font-size: 10px; font-weight: 700; line-height: 19px; text-align: center; }
+    .side-comment-count, .block-comment-count { min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px; background: var(--mochi-comment); color: light-dark(#fff, #111a28); font-size: 10px; font-weight: 700; line-height: 19px; text-align: center; }
     .mochi-content { min-height: 68px; padding-top: 12px; font-size: 16px; line-height: 1.6; }
     .mochi-line { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; margin: 0 -7px 7px; padding: 7px; border-radius: 10px; }
     .mochi-line:last-child { margin-bottom: 0; }
@@ -102,10 +102,9 @@
     .markdown-highlight { padding: 0 2px; border-radius: 3px; background: light-dark(#fff0a8, #5b4b16); color: inherit; }
     .markdown-cloze { padding: 1px 5px; border-radius: 5px; background: var(--mochi-comment-soft); color: var(--mochi-comment); }
     .markdown-spacer { height: 7px; }
-    .line-comment-stack { display: flex; flex-direction: column; gap: 3px; }
-    .line-comment { position: relative; min-width: 32px; min-height: 32px; padding: 6px; border-radius: 9px; background: transparent; color: var(--mochi-comment); }
-    .line-comment:hover { background: var(--mochi-comment-soft); color: light-dark(#235dae, #9abfff); transform: translateY(-1px); }
-    .line-comment-count { position: absolute; right: 26px; top: -4px; pointer-events: none; }
+    .block-comment { position: relative; min-width: 32px; min-height: 32px; padding: 6px; border-radius: 9px; background: transparent; color: var(--mochi-comment); }
+    .block-comment:hover { background: var(--mochi-comment-soft); color: light-dark(#235dae, #9abfff); transform: translateY(-1px); }
+    .block-comment-count { position: absolute; right: 26px; top: -4px; pointer-events: none; }
     .mochi-card hr { margin: 18px 0; border: 0; border-top: 1px solid var(--mochi-border); }
     .mochi-editor textarea, .comment-composer textarea { width: 100%; min-height: 108px; margin-top: 12px; padding: 12px; resize: vertical; border: 1px solid var(--mochi-border); border-radius: 12px; background: var(--mochi-bg); color: var(--mochi-text); font: 14px/1.5 "Cascadia Code", Consolas, monospace; }
     .mochi-editor-actions, .comment-composer-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 9px; }
@@ -138,8 +137,8 @@
     .empty-copy { color: var(--mochi-muted); text-align: center; padding: 22px 8px; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     @media (hover: hover) and (pointer: fine) {
-      .line-comment { opacity: 0; }
-      .mochi-line:hover .line-comment, .mochi-line:focus-within .line-comment { opacity: 1; }
+      .block-comment { opacity: 0; }
+      .mochi-line:hover .block-comment, .mochi-line:focus-within .block-comment { opacity: 1; }
     }
     @media (max-width: 470px) {
       #mochi-reviewer { padding: 12px; }
@@ -153,7 +152,7 @@
   </style>
 </head>
 <body>
-  <section id="mochi-reviewer" data-template-version="v9" aria-label="Mochi Reviewer">
+  <section id="mochi-reviewer" data-template-version="v11" aria-label="Mochi Reviewer">
     <header class="mochi-header">
       <div>
         <div class="mochi-eyebrow">MOCHI REVIEWER</div>
@@ -338,20 +337,49 @@
         });
       }
 
-      function lineCommentButton(side, record) {
-        if (record.commentIndex === null) return '';
-        const count = state.comments.filter(comment => comment.cardId === currentCard().id && comment.side === side && comment.scope === 'line' && comment.lineNumber === record.commentIndex).length;
-        return `<button class="line-comment" data-comment-line="${side}:${record.commentIndex}" type="button" aria-label="Комментировать строку ${record.commentIndex + 1}">
-          ${iconComment()}<span class="line-comment-count" ${count ? '' : 'hidden'}>${count}</span>
+      const blockKindLabels = {
+        code: 'блок кода',
+        heading: 'заголовок',
+        rule: 'разделитель',
+        quote: 'цитата',
+        list: 'пункт списка',
+        paragraph: 'абзац'
+      };
+
+      function blockBounds(records) {
+        const lines = records.map(record => record.commentIndex).filter(Number.isInteger);
+        return lines.length ? { start: lines[0], end: lines[lines.length - 1] } : null;
+      }
+
+      function blockCommentButton(side, kind, records) {
+        const bounds = blockBounds(records);
+        if (!bounds) return '';
+        const count = state.comments.filter(comment => {
+          if (comment.cardId !== currentCard().id || comment.side !== side) return false;
+          if (comment.scope === 'block') return comment.blockStart === bounds.start && comment.blockEnd === bounds.end;
+          return comment.scope === 'line' && comment.lineNumber >= bounds.start && comment.lineNumber <= bounds.end;
+        }).length;
+        const label = blockKindLabels[kind] || 'блок';
+        return `<button class="block-comment" data-comment-block="${side}:${bounds.start}:${bounds.end}:${kind}" type="button" aria-label="Комментарий: ${label}">
+          ${iconComment()}<span class="block-comment-count" ${count ? '' : 'hidden'}>${count}</span>
         </button>`;
       }
 
-      function markdownBlock(side, html, records) {
-        const buttons = records.map(record => lineCommentButton(side, record)).join('');
+      function markdownBlock(side, kind, html, records) {
+        const button = blockCommentButton(side, kind, records);
         return `<div class="mochi-line">
           <div class="mochi-line-text">${html}</div>
-          <div class="line-comment-stack">${buttons}</div>
+          <div>${button}</div>
         </div>`;
+      }
+
+      function isSpecialMarkdown(record) {
+        return /^(`{3,}|~{3,})/.test(record.trimmed)
+          || /^(#{1,6})\s+/.test(record.trimmed)
+          || /^(?:-{3,}|\*{3,}|_{3,})$/.test(record.trimmed)
+          || /^>\s?/.test(record.trimmed)
+          || /^(\s*)[-+*]\s+/.test(record.raw)
+          || /^(\s*)(\d+)[.)]\s+/.test(record.raw);
       }
 
       function renderMarkdown(value, side) {
@@ -380,43 +408,52 @@
             index = Math.min(cursor, records.length - 1);
             const languageLabel = language ? `<span class="markdown-code-language">${escapeHTML(language)}</span>` : '';
             const languageClass = language ? ' has-language' : '';
-            output.push(markdownBlock(side, `<div class="markdown-code${languageClass}">${languageLabel}<pre><code>${escapeHTML(codeLines.join('\n'))}</code></pre></div>`, blockRecords));
+            output.push(markdownBlock(side, 'code', `<div class="markdown-code${languageClass}">${languageLabel}<pre><code>${escapeHTML(codeLines.join('\n'))}</code></pre></div>`, blockRecords));
             continue;
           }
 
           const heading = record.trimmed.match(/^(#{1,6})\s+(.+)$/);
           if (heading) {
             const level = heading[1].length;
-            output.push(markdownBlock(side, `<div class="markdown-heading markdown-h${level}">${formatInline(heading[2])}</div>`, [record]));
+            output.push(markdownBlock(side, 'heading', `<div class="markdown-heading markdown-h${level}">${formatInline(heading[2])}</div>`, [record]));
             continue;
           }
 
           if (/^(?:-{3,}|\*{3,}|_{3,})$/.test(record.trimmed)) {
-            output.push(markdownBlock(side, '<hr>', [record]));
+            output.push(markdownBlock(side, 'rule', '<hr>', [record]));
             continue;
           }
 
           const quote = record.trimmed.match(/^>\s?(.*)$/);
           if (quote) {
-            output.push(markdownBlock(side, `<blockquote class="markdown-blockquote">${formatInline(quote[1])}</blockquote>`, [record]));
+            output.push(markdownBlock(side, 'quote', `<blockquote class="markdown-blockquote">${formatInline(quote[1])}</blockquote>`, [record]));
             continue;
           }
 
           const unordered = record.raw.match(/^(\s*)[-+*]\s+(.+)$/);
           if (unordered) {
             const indent = Math.floor(unordered[1].replace(/\t/g, '  ').length / 2);
-            output.push(markdownBlock(side, `<div class="markdown-list-item" style="--markdown-indent:${indent}"><span class="markdown-list-marker">•</span><span>${formatInline(unordered[2])}</span></div>`, [record]));
+            output.push(markdownBlock(side, 'list', `<div class="markdown-list-item" style="--markdown-indent:${indent}"><span class="markdown-list-marker">•</span><span>${formatInline(unordered[2])}</span></div>`, [record]));
             continue;
           }
 
           const ordered = record.raw.match(/^(\s*)(\d+)[.)]\s+(.+)$/);
           if (ordered) {
             const indent = Math.floor(ordered[1].replace(/\t/g, '  ').length / 2);
-            output.push(markdownBlock(side, `<div class="markdown-list-item" style="--markdown-indent:${indent}"><span class="markdown-list-marker">${ordered[2]}.</span><span>${formatInline(ordered[3])}</span></div>`, [record]));
+            output.push(markdownBlock(side, 'list', `<div class="markdown-list-item" style="--markdown-indent:${indent}"><span class="markdown-list-marker">${ordered[2]}.</span><span>${formatInline(ordered[3])}</span></div>`, [record]));
             continue;
           }
 
-          output.push(markdownBlock(side, `<p class="markdown-paragraph">${formatInline(record.raw)}</p>`, [record]));
+          const paragraphRecords = [record];
+          let cursor = index + 1;
+          for (; cursor < records.length; cursor += 1) {
+            const candidate = records[cursor];
+            if (!candidate.trimmed || isSpecialMarkdown(candidate)) break;
+            paragraphRecords.push(candidate);
+          }
+          index = cursor - 1;
+          const paragraph = paragraphRecords.map(item => formatInline(item.raw)).join('<br>');
+          output.push(markdownBlock(side, 'paragraph', `<p class="markdown-paragraph">${paragraph}</p>`, paragraphRecords));
         }
         return output.join('');
       }
@@ -534,7 +571,7 @@
         summaryTitle.textContent = `${cardComments.length} ${wordForm(cardComments.length, ['комментарий', 'комментария', 'комментариев'])} к карточке`;
         commentList.innerHTML = cardComments.map(comment => {
           const side = comment.side === 'front' ? 'Вопрос' : 'Ответ';
-          const target = comment.scope === 'side' ? `${side} целиком` : `${side} · строка ${comment.lineNumber + 1}`;
+          const target = commentTargetLabel(comment, side);
           return `<article class="comment-item">
             <div><div class="comment-item-context">${target}</div><div class="comment-item-text">${escapeHTML(comment.text)}</div></div>
             <div class="comment-item-actions">
@@ -543,6 +580,16 @@
             </div>
           </article>`;
         }).join('');
+      }
+
+      function commentTargetLabel(comment, sideLabel = null) {
+        const side = sideLabel || (comment.side === 'front' ? 'Вопрос' : 'Ответ');
+        if (comment.scope === 'side') return `${side} целиком`;
+        if (comment.scope === 'block') {
+          const label = blockKindLabels[comment.blockKind] || 'блок';
+          return `${side} · ${label}`;
+        }
+        return `${side} · строка ${comment.lineNumber + 1}`;
       }
 
       function render() {
@@ -603,16 +650,19 @@
         input.focus();
       }
 
-      function openCommentComposer(side, lineNumber = null) {
+      function openCommentComposer(side, target = null) {
         const card = currentCard();
         if (!card || !confirmDiscard()) return;
         closeEditors();
         editingCommentId = null;
-        commentTarget = { cardId: card.id, side, scope: lineNumber === null ? 'side' : 'line', lineNumber };
+        commentTarget = target
+          ? { cardId: card.id, side, scope: 'block', ...target }
+          : { cardId: card.id, side, scope: 'side' };
         const sideDative = side === 'front' ? 'вопросу' : 'ответу';
         const sideLocative = side === 'front' ? 'вопросе' : 'ответе';
         commentKicker.textContent = 'Комментарий для Codex';
-        commentContext.textContent = lineNumber === null ? `К ${sideDative} целиком` : `К строке ${lineNumber + 1} в ${sideLocative}`;
+        const kindLabel = target ? (blockKindLabels[target.blockKind] || 'блоку') : null;
+        commentContext.textContent = target ? `К элементу «${kindLabel}» в ${sideLocative}` : `К ${sideDative} целиком`;
         commentInput.value = '';
         saveComment.textContent = 'Добавить комментарий';
         saveComment.disabled = true;
@@ -628,7 +678,7 @@
         editingCommentId = comment.id;
         const side = comment.side === 'front' ? 'вопрос' : 'ответ';
         commentKicker.textContent = 'Редактирование комментария';
-        commentContext.textContent = comment.scope === 'side' ? `${side} целиком` : `${side} · строка ${comment.lineNumber + 1}`;
+        commentContext.textContent = commentTargetLabel(comment, side);
         commentInput.value = comment.text;
         saveComment.textContent = 'Сохранить изменения';
         saveComment.disabled = false;
@@ -731,10 +781,10 @@
         }
         const sideComment = event.target.closest('[data-comment-side]');
         if (sideComment) { openCommentComposer(sideComment.dataset.commentSide); return; }
-        const lineComment = event.target.closest('[data-comment-line]');
-        if (lineComment) {
-          const [side, line] = lineComment.dataset.commentLine.split(':');
-          openCommentComposer(side, Number(line));
+        const blockComment = event.target.closest('[data-comment-block]');
+        if (blockComment) {
+          const [side, start, end, blockKind] = blockComment.dataset.commentBlock.split(':');
+          openCommentComposer(side, { blockStart: Number(start), blockEnd: Number(end), blockKind });
           return;
         }
         const editComment = event.target.closest('[data-edit-comment]');
