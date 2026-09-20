@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mochi Cards Generator"
+  short_description: "Mochi flashcards with visual check"
+  default_prompt: "Use $mochi-cards-generator to create Russian Mochi flashcards and open the reviewer in the right tab."

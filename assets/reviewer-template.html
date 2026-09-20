@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Mochi Reviewer</title>
+  <style>
+    :root { color-scheme: light dark; }
+    html, body { min-width: 300px; margin: 0; background: light-dark(#f7f4ee, #181714); }
+    body { min-height: 100vh; }
+    #mochi-reviewer {
+      --mochi-bg: light-dark(#f7f4ee, #181714);
+      --mochi-panel: light-dark(#fffdf8, #23211d);
+      --mochi-panel-soft: light-dark(#f3eee4, #2d2923);
+      --mochi-text: light-dark(#282620, #f4efe5);
+      --mochi-muted: light-dark(#777063, #aaa295);
+      --mochi-border: light-dark(#e5ded1, #403b33);
+      --mochi-accent: #e8734a;
+      --mochi-accent-hover: light-dark(#cf5d37, #f28a63);
+      --mochi-accent-ink: #fffaf5;
+      --mochi-danger: light-dark(#b64b45, #f28278);
+      --mochi-comment: light-dark(#356fc8, #78a8ff);
+      --mochi-comment-soft: light-dark(#edf4ff, #202e45);
+      --mochi-radius: 22px;
+      --mochi-gap: 18px;
+      width: min(100%, 540px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 18px;
+      background: var(--mochi-bg);
+      color: var(--mochi-text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      box-sizing: border-box;
+    }
+    #mochi-reviewer * { box-sizing: border-box; }
+    #mochi-reviewer [hidden] { display: none !important; }
+    #mochi-reviewer button { transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease, opacity .16s ease; }
+    #mochi-reviewer button:not(:disabled) { cursor: pointer; }
+    #mochi-reviewer button:disabled { cursor: not-allowed; }
+    #mochi-reviewer button:not(:disabled):active { transform: translateY(1px); }
+    #mochi-reviewer button:focus-visible, #mochi-reviewer textarea:focus-visible { outline: 0; box-shadow: 0 0 0 3px light-dark(rgb(232 115 74 / .24), rgb(242 138 99 / .28)); }
+    .icon { width: 15px; height: 15px; flex: 0 0 auto; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .mochi-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .mochi-eyebrow { color: var(--mochi-accent); font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+    #mochi-reviewer h1 { margin: 5px 0 0; font-size: 18px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
+    .mochi-export, .mochi-button, .mochi-edit, .mochi-delete, .mochi-comment-action, .line-comment, .comment-close, .review-arrow, .comment-edit, .comment-delete {
+      border: 0;
+      font: inherit;
+      color: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+    .mochi-export { padding: 9px 12px; border-radius: 12px; background: var(--mochi-accent); color: var(--mochi-accent-ink); font-weight: 650; }
+    .mochi-export:hover:not(:disabled) { background: var(--mochi-accent-hover); transform: translateY(-1px); box-shadow: 0 6px 14px light-dark(rgb(157 72 40 / .18), rgb(0 0 0 / .24)); }
+    .mochi-export:disabled { opacity: .45; }
+    .review-toolbar { display: grid; grid-template-columns: 38px minmax(0, 1fr) 38px; align-items: center; gap: 10px; margin-top: 20px; }
+    .review-position { min-width: 0; text-align: center; }
+    .review-position strong { display: block; font-size: 13px; }
+    .review-arrow { width: 38px; height: 38px; border: 1px solid var(--mochi-border); border-radius: 11px; background: var(--mochi-panel); }
+    .review-arrow .icon { width: 16px; height: 16px; }
+    .review-arrow:disabled { opacity: .38; }
+    .review-arrow:not(:disabled):hover { border-color: var(--mochi-accent); background: var(--mochi-panel-soft); color: var(--mochi-accent); transform: translateY(-1px); }
+    .mochi-progress { height: 6px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: light-dark(#e8e1d5, #39352f); }
+    #progress-fill { height: 100%; width: 0; border-radius: inherit; background: var(--mochi-accent); transition: width .22s ease; }
+    .collection-meta { margin-top: 8px; color: var(--mochi-muted); font-size: 11px; line-height: 1.35; text-align: center; }
+    .mochi-card { position: relative; margin-top: 18px; padding: var(--mochi-gap); border: 1px solid var(--mochi-border); border-radius: var(--mochi-radius); background: var(--mochi-panel); box-shadow: 0 14px 34px light-dark(rgb(68 48 25 / .08), rgb(0 0 0 / .20)); }
+    .mochi-side { position: relative; }
+    .mochi-side-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .mochi-side-label { color: var(--mochi-muted); font-size: 11px; font-weight: 700; letter-spacing: .10em; text-transform: uppercase; }
+    .mochi-side-actions { display: flex; align-items: center; gap: 3px; }
+    .mochi-edit, .mochi-comment-action { min-height: 32px; padding: 6px 8px; border-radius: 9px; background: transparent; color: var(--mochi-muted); font-size: 12px; }
+    .mochi-edit:hover, .mochi-comment-action:hover { background: var(--mochi-panel-soft); color: var(--mochi-text); }
+    .mochi-comment-action { color: var(--mochi-comment); }
+    .mochi-edit:hover { color: var(--mochi-accent); transform: translateY(-1px); }
+    .mochi-comment-action:hover { background: var(--mochi-comment-soft); color: var(--mochi-comment); transform: translateY(-1px); }
+    .side-comment-count, .line-comment-count { min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px; background: var(--mochi-comment); color: light-dark(#fff, #111a28); font-size: 10px; font-weight: 700; line-height: 19px; text-align: center; }
+    .mochi-content { min-height: 68px; padding-top: 12px; font-size: 16px; line-height: 1.6; }
+    .mochi-line { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; margin: 0 -7px 7px; padding: 7px; border-radius: 10px; }
+    .mochi-line:last-child { margin-bottom: 0; }
+    .mochi-line:hover, .mochi-line:focus-within { background: var(--mochi-panel-soft); }
+    .mochi-line-text { min-width: 0; overflow-wrap: anywhere; }
+    .mochi-line-text code { padding: 2px 5px; border-radius: 6px; background: var(--mochi-panel-soft); font-family: "Cascadia Code", Consolas, monospace; font-size: .88em; }
+    .mochi-line-text pre { overflow: auto; margin: 0; padding: 12px; border: 1px solid var(--mochi-border); border-radius: 10px; background: light-dark(#f3eee4, #171612); font: 13px/1.55 "Cascadia Code", Consolas, monospace; tab-size: 2; white-space: pre; }
+    .mochi-line-text pre code { padding: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; }
+    .markdown-heading { margin: 0; font-weight: 700; line-height: 1.3; }
+    .markdown-h1 { font-size: 1.55em; }
+    .markdown-h2 { font-size: 1.35em; }
+    .markdown-h3 { font-size: 1.18em; }
+    .markdown-h4, .markdown-h5, .markdown-h6 { font-size: 1em; }
+    .markdown-paragraph { margin: 0; white-space: pre-wrap; }
+    .markdown-blockquote { margin: 0; padding: 3px 0 3px 12px; border-left: 3px solid var(--mochi-border); color: var(--mochi-muted); }
+    .markdown-list-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; padding-left: calc(var(--markdown-indent, 0) * 18px); }
+    .markdown-list-marker { color: var(--mochi-accent); font-variant-numeric: tabular-nums; }
+    .markdown-code { position: relative; }
+    .markdown-code-language { position: absolute; top: 7px; right: 9px; z-index: 1; padding: 2px 6px; border-radius: 5px; background: var(--mochi-panel); color: var(--mochi-muted); font: 10px/1.4 "Cascadia Code", Consolas, monospace; text-transform: lowercase; }
+    .markdown-code.has-language pre { padding-top: 30px; }
+    .markdown-link { color: var(--mochi-comment); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    .markdown-highlight { padding: 0 2px; border-radius: 3px; background: light-dark(#fff0a8, #5b4b16); color: inherit; }
+    .markdown-cloze { padding: 1px 5px; border-radius: 5px; background: var(--mochi-comment-soft); color: var(--mochi-comment); }
+    .markdown-spacer { height: 7px; }
+    .line-comment-stack { display: flex; flex-direction: column; gap: 3px; }
+    .line-comment { position: relative; min-width: 32px; min-height: 32px; padding: 6px; border-radius: 9px; background: transparent; color: var(--mochi-comment); }
+    .line-comment:hover { background: var(--mochi-comment-soft); color: light-dark(#235dae, #9abfff); transform: translateY(-1px); }
+    .line-comment-count { position: absolute; right: 26px; top: -4px; pointer-events: none; }
+    .mochi-card hr { margin: 18px 0; border: 0; border-top: 1px solid var(--mochi-border); }
+    .mochi-editor textarea, .comment-composer textarea { width: 100%; min-height: 108px; margin-top: 12px; padding: 12px; resize: vertical; border: 1px solid var(--mochi-border); border-radius: 12px; background: var(--mochi-bg); color: var(--mochi-text); font: 14px/1.5 "Cascadia Code", Consolas, monospace; }
+    .mochi-editor-actions, .comment-composer-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 9px; }
+    .comment-composer { margin-top: 18px; padding: 14px; border: 1px solid light-dark(#c9daf7, #345277); border-radius: 14px; background: var(--mochi-comment-soft); }
+    .comment-composer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .comment-kicker { color: var(--mochi-comment); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    #comment-context { margin-top: 4px; font-size: 13px; }
+    .comment-close { width: 30px; height: 30px; border-radius: 9px; background: transparent; color: var(--mochi-muted); }
+    .comment-close:hover { background: var(--mochi-panel); color: var(--mochi-text); transform: rotate(6deg); }
+    .comment-summary { margin-top: 12px; padding: 12px; border: 1px solid light-dark(#c9daf7, #345277); border-radius: 14px; background: var(--mochi-comment-soft); }
+    .comment-summary-copy { display: flex; align-items: center; gap: 10px; color: var(--mochi-comment); }
+    .comment-summary-copy strong { display: block; color: var(--mochi-text); font-size: 13px; }
+    .comment-list { display: grid; gap: 8px; margin-top: 11px; }
+    .comment-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 10px; border-radius: 11px; background: var(--mochi-panel); }
+    .comment-item-context { color: var(--mochi-comment); font-size: 11px; font-weight: 700; }
+    .comment-item-text { margin-top: 4px; color: var(--mochi-text); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+    .comment-item-actions { display: flex; align-items: flex-start; gap: 3px; }
+    .comment-edit, .comment-delete { width: 32px; height: 32px; border-radius: 9px; background: transparent; color: var(--mochi-muted); }
+    .comment-edit:hover { background: var(--mochi-panel-soft); color: var(--mochi-comment); transform: translateY(-1px); }
+    .comment-delete:hover { background: var(--mochi-panel-soft); color: var(--mochi-danger); transform: translateY(-1px); }
+    .mochi-button { min-height: 42px; padding: 9px 12px; border-radius: 12px; font-weight: 600; }
+    .mochi-button.secondary { border: 1px solid var(--mochi-border); background: var(--mochi-panel); }
+    .mochi-button.primary { background: var(--mochi-accent); color: var(--mochi-accent-ink); }
+    .mochi-button:disabled { opacity: .42; }
+    .mochi-button.secondary:not(:disabled):hover { border-color: var(--mochi-accent); background: var(--mochi-panel-soft); color: var(--mochi-accent); transform: translateY(-1px); }
+    .mochi-button.primary:not(:disabled):hover { background: var(--mochi-accent-hover); transform: translateY(-1px); box-shadow: 0 5px 12px light-dark(rgb(157 72 40 / .16), rgb(0 0 0 / .22)); }
+    .mochi-delete { width: 100%; margin-top: 9px; padding: 9px 12px; background: transparent; color: var(--mochi-danger); font-size: 13px; }
+    .mochi-delete:not(:disabled):hover { background: light-dark(#fff0ee, #3c2523); color: light-dark(#963934, #ff9a91); transform: translateY(-1px); }
+    .mochi-toast { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--mochi-panel-soft); color: var(--mochi-text); font-size: 12px; text-align: center; overflow-wrap: anywhere; }
+    .empty-copy { color: var(--mochi-muted); text-align: center; padding: 22px 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    @media (hover: hover) and (pointer: fine) {
+      .line-comment { opacity: 0; }
+      .mochi-line:hover .line-comment, .mochi-line:focus-within .line-comment { opacity: 1; }
+    }
+    @media (max-width: 470px) {
+      #mochi-reviewer { padding: 12px; }
+      .mochi-header { align-items: stretch; }
+      .mochi-side-head { align-items: flex-start; }
+      .mochi-side-actions { align-items: stretch; flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #mochi-reviewer *, #mochi-reviewer *::before, #mochi-reviewer *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <section id="mochi-reviewer" data-template-version="v9" aria-label="Mochi Reviewer">
+    <header class="mochi-header">
+      <div>
+        <div class="mochi-eyebrow">MOCHI REVIEWER</div>
+        <h1 id="deck-title">Загрузка коллекции…</h1>
+      </div>
+      <div class="header-actions">
+        <button class="mochi-export" id="export-button" type="button" disabled>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2"/></svg>
+          Экспорт
+        </button>
+      </div>
+    </header>
+
+    <div class="review-toolbar" aria-label="Навигация по карточкам">
+      <button class="review-arrow" id="previous-button" type="button" aria-label="Предыдущая карточка" disabled>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="review-position"><strong id="card-counter">Карточки загружаются</strong></div>
+      <button class="review-arrow" id="next-button" type="button" aria-label="Следующая карточка" disabled>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+    <div class="mochi-progress" id="progress" role="progressbar" aria-label="Прогресс просмотра" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><div id="progress-fill"></div></div>
+    <div class="collection-meta" id="comment-meta" hidden></div>
+
+    <main class="mochi-card" id="review-card">
+      <section class="mochi-side" id="front-side" aria-label="Лицевая сторона карточки">
+        <div class="mochi-side-head">
+          <span class="mochi-side-label">Вопрос</span>
+          <div class="mochi-side-actions">
+            <button class="mochi-comment-action" data-comment-side="front" type="button">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h6M19 5v6m-3-3h6"/></svg>
+              Комментарий <span class="side-comment-count" data-side-count="front" hidden></span>
+            </button>
+            <button class="mochi-edit" data-edit="front" type="button">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+              Править
+            </button>
+          </div>
+        </div>
+        <div class="mochi-content" id="front-preview"></div>
+        <div class="mochi-editor" id="front-editor" hidden>
+          <label class="sr-only" for="front-input">Текст вопроса</label>
+          <textarea id="front-input"></textarea>
+          <div class="mochi-editor-actions">
+            <button class="mochi-button secondary" data-cancel-edit="front" type="button">Отмена</button>
+            <button class="mochi-button primary" data-save="front" type="button">Сохранить</button>
+          </div>
+        </div>
+      </section>
+
+      <hr>
+
+      <section class="mochi-side" id="back-side" aria-label="Обратная сторона карточки">
+        <div class="mochi-side-head">
+          <span class="mochi-side-label">Ответ</span>
+          <div class="mochi-side-actions">
+            <button class="mochi-comment-action" data-comment-side="back" type="button">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h6M19 5v6m-3-3h6"/></svg>
+              Комментарий <span class="side-comment-count" data-side-count="back" hidden></span>
+            </button>
+            <button class="mochi-edit" data-edit="back" type="button">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+              Править
+            </button>
+          </div>
+        </div>
+        <div class="mochi-content" id="back-preview"></div>
+        <div class="mochi-editor" id="back-editor" hidden>
+          <label class="sr-only" for="back-input">Текст ответа</label>
+          <textarea id="back-input"></textarea>
+          <div class="mochi-editor-actions">
+            <button class="mochi-button secondary" data-cancel-edit="back" type="button">Отмена</button>
+            <button class="mochi-button primary" data-save="back" type="button">Сохранить</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="comment-composer" id="comment-composer" hidden>
+        <div class="comment-composer-head">
+          <div><div class="comment-kicker" id="comment-kicker">Комментарий для Codex</div><div id="comment-context">К вопросу целиком</div></div>
+          <button class="comment-close" id="close-comment" type="button" aria-label="Закрыть комментарий">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <label class="sr-only" for="comment-input">Комментарий</label>
+        <textarea id="comment-input" placeholder="Например: сформулируй короче и убери подсказку из вопроса"></textarea>
+        <div class="comment-composer-actions">
+          <button class="mochi-button secondary" id="cancel-comment" type="button">Отмена</button>
+          <button class="mochi-button primary" id="save-comment" type="button" disabled>Добавить комментарий</button>
+        </div>
+      </div>
+    </main>
+
+    <section class="comment-summary" id="comment-summary" aria-live="polite" hidden>
+      <div class="comment-summary-copy">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h6M17 8h.01M13 8h.01M9 8h.01"/></svg>
+        <div><strong id="comment-summary-title">Комментарии к карточке</strong></div>
+      </div>
+      <div class="comment-list" id="comment-list"></div>
+    </section>
+
+    <button class="mochi-delete" id="delete-button" type="button" disabled>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 11v5m4-5v5"/></svg>
+      Удалить карточку
+    </button>
+    <div class="mochi-toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </section>
+
+  <script>
+    (() => {
+      'use strict';
+      const root = document.getElementById('mochi-reviewer');
+      const counter = document.getElementById('card-counter');
+      const progress = document.getElementById('progress');
+      const fill = document.getElementById('progress-fill');
+      const previous = document.getElementById('previous-button');
+      const next = document.getElementById('next-button');
+      const exportButton = document.getElementById('export-button');
+      const deleteButton = document.getElementById('delete-button');
+      const composer = document.getElementById('comment-composer');
+      const commentInput = document.getElementById('comment-input');
+      const commentKicker = document.getElementById('comment-kicker');
+      const commentContext = document.getElementById('comment-context');
+      const saveComment = document.getElementById('save-comment');
+      const summary = document.getElementById('comment-summary');
+      const summaryTitle = document.getElementById('comment-summary-title');
+      const commentList = document.getElementById('comment-list');
+      const commentMeta = document.getElementById('comment-meta');
+      const toast = document.getElementById('toast');
+      let state = null;
+      let commentTarget = null;
+      let editingCommentId = null;
+      let editingSide = null;
+      let editBaseline = '';
+      let requestInFlight = false;
+
+      function iconTrash() {
+        return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 11v5m4-5v5"/></svg>';
+      }
+
+      function iconComment() {
+        return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h6M19 5v6m-3-3h6"/></svg>';
+      }
+
+      function iconEdit() {
+        return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>';
+      }
+
+      function escapeHTML(value) {
+        return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      function formatInline(value) {
+        const codeSpans = [];
+        let output = escapeHTML(value).replace(/`([^`]+)`/g, (_, code) => {
+          const token = `\u0000CODE${codeSpans.length}\u0000`;
+          codeSpans.push(`<code>${code}</code>`);
+          return token;
+        });
+        output = output
+          .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a class="markdown-link" href="$2" target="_blank" rel="noreferrer">$1</a>')
+          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+          .replace(/~~([^~]+)~~/g, '<del>$1</del>')
+          .replace(/==([^=]+)==/g, '<mark class="markdown-highlight">$1</mark>')
+          .replace(/\{\{c\d+::([^}]+)\}\}/g, '<span class="markdown-cloze">$1</span>')
+          .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        return output.replace(/\u0000CODE(\d+)\u0000/g, (_, index) => codeSpans[Number(index)]);
+      }
+
+      function splitLines(value) {
+        return String(value).replace(/\r\n/g, '\n').split(/\n/).map(line => line.trim()).filter(Boolean);
+      }
+
+      function markdownRecords(value) {
+        let commentIndex = 0;
+        return String(value).replace(/\r\n/g, '\n').split('\n').map(raw => {
+          const trimmed = raw.trim();
+          const record = { raw, trimmed, commentIndex: trimmed ? commentIndex : null };
+          if (trimmed) commentIndex += 1;
+          return record;
+        });
+      }
+
+      function lineCommentButton(side, record) {
+        if (record.commentIndex === null) return '';
+        const count = state.comments.filter(comment => comment.cardId === currentCard().id && comment.side === side && comment.scope === 'line' && comment.lineNumber === record.commentIndex).length;
+        return `<button class="line-comment" data-comment-line="${side}:${record.commentIndex}" type="button" aria-label="Комментировать строку ${record.commentIndex + 1}">
+          ${iconComment()}<span class="line-comment-count" ${count ? '' : 'hidden'}>${count}</span>
+        </button>`;
+      }
+
+      function markdownBlock(side, html, records) {
+        const buttons = records.map(record => lineCommentButton(side, record)).join('');
+        return `<div class="mochi-line">
+          <div class="mochi-line-text">${html}</div>
+          <div class="line-comment-stack">${buttons}</div>
+        </div>`;
+      }
+
+      function renderMarkdown(value, side) {
+        const records = markdownRecords(value);
+        const output = [];
+        for (let index = 0; index < records.length; index += 1) {
+          const record = records[index];
+          if (!record.trimmed) {
+            output.push('<div class="markdown-spacer" aria-hidden="true"></div>');
+            continue;
+          }
+
+          const fence = record.trimmed.match(/^(`{3,}|~{3,})\s*([A-Za-z0-9_+.-]*)\s*$/);
+          if (fence) {
+            const marker = fence[1];
+            const language = fence[2];
+            const blockRecords = [record];
+            const codeLines = [];
+            let cursor = index + 1;
+            for (; cursor < records.length; cursor += 1) {
+              const candidate = records[cursor];
+              blockRecords.push(candidate);
+              if (candidate.trimmed.startsWith(marker[0].repeat(marker.length))) break;
+              codeLines.push(candidate.raw);
+            }
+            index = Math.min(cursor, records.length - 1);
+            const languageLabel = language ? `<span class="markdown-code-language">${escapeHTML(language)}</span>` : '';
+            const languageClass = language ? ' has-language' : '';
+            output.push(markdownBlock(side, `<div class="markdown-code${languageClass}">${languageLabel}<pre><code>${escapeHTML(codeLines.join('\n'))}</code></pre></div>`, blockRecords));
+            continue;
+          }
+
+          const heading = record.trimmed.match(/^(#{1,6})\s+(.+)$/);
+          if (heading) {
+            const level = heading[1].length;
+            output.push(markdownBlock(side, `<div class="markdown-heading markdown-h${level}">${formatInline(heading[2])}</div>`, [record]));
+            continue;
+          }
+
+          if (/^(?:-{3,}|\*{3,}|_{3,})$/.test(record.trimmed)) {
+            output.push(markdownBlock(side, '<hr>', [record]));
+            continue;
+          }
+
+          const quote = record.trimmed.match(/^>\s?(.*)$/);
+          if (quote) {
+            output.push(markdownBlock(side, `<blockquote class="markdown-blockquote">${formatInline(quote[1])}</blockquote>`, [record]));
+            continue;
+          }
+
+          const unordered = record.raw.match(/^(\s*)[-+*]\s+(.+)$/);
+          if (unordered) {
+            const indent = Math.floor(unordered[1].replace(/\t/g, '  ').length / 2);
+            output.push(markdownBlock(side, `<div class="markdown-list-item" style="--markdown-indent:${indent}"><span class="markdown-list-marker">•</span><span>${formatInline(unordered[2])}</span></div>`, [record]));
+            continue;
+          }
+
+          const ordered = record.raw.match(/^(\s*)(\d+)[.)]\s+(.+)$/);
+          if (ordered) {
+            const indent = Math.floor(ordered[1].replace(/\t/g, '  ').length / 2);
+            output.push(markdownBlock(side, `<div class="markdown-list-item" style="--markdown-indent:${indent}"><span class="markdown-list-marker">${ordered[2]}.</span><span>${formatInline(ordered[3])}</span></div>`, [record]));
+            continue;
+          }
+
+          output.push(markdownBlock(side, `<p class="markdown-paragraph">${formatInline(record.raw)}</p>`, [record]));
+        }
+        return output.join('');
+      }
+
+      function wordForm(count, forms) {
+        const mod100 = count % 100;
+        const mod10 = count % 10;
+        if (mod100 >= 11 && mod100 <= 14) return forms[2];
+        if (mod10 === 1) return forms[0];
+        if (mod10 >= 2 && mod10 <= 4) return forms[1];
+        return forms[2];
+      }
+
+      function currentCard() {
+        return state && state.cards.length ? state.cards[state.currentIndex] : null;
+      }
+
+      function hasUnsavedEdit() {
+        if (!editingSide) return false;
+        return document.getElementById(`${editingSide}-input`).value !== editBaseline;
+      }
+
+      function confirmDiscard() {
+        return !hasUnsavedEdit() || window.confirm('Есть несохранённые изменения. Отменить их?');
+      }
+
+      function setToast(message, sticky = false) {
+        toast.textContent = message;
+        toast.hidden = false;
+        window.clearTimeout(setToast.timer);
+        if (!sticky) setToast.timer = window.setTimeout(() => { toast.hidden = true; }, 3200);
+      }
+
+      function closeEditors() {
+        ['front', 'back'].forEach(side => {
+          document.getElementById(`${side}-preview`).hidden = false;
+          document.getElementById(`${side}-editor`).hidden = true;
+        });
+        editingSide = null;
+        editBaseline = '';
+      }
+
+      function closeCommentComposer() {
+        composer.hidden = true;
+        commentTarget = null;
+        editingCommentId = null;
+        commentInput.value = '';
+        commentKicker.textContent = 'Комментарий для Codex';
+        saveComment.textContent = 'Добавить комментарий';
+        saveComment.disabled = true;
+      }
+
+      async function fetchState() {
+        const response = await fetch('/api/state', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Не удалось загрузить состояние коллекции');
+        return response.json();
+      }
+
+      async function sendAction(payload) {
+        if (!state || requestInFlight) return null;
+        requestInFlight = true;
+        try {
+          const response = await fetch('/api/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payload, expectedRevision: state.revision })
+          });
+          const result = await response.json();
+          if (response.status === 409 && result.state) {
+            state = result.state;
+            closeEditors();
+            closeCommentComposer();
+            render();
+            setToast(result.error || 'Состояние обновлено');
+            return null;
+          }
+          if (!response.ok) throw new Error(result.error || 'Действие не выполнено');
+          state = result;
+          render();
+          return result;
+        } finally {
+          requestInFlight = false;
+        }
+      }
+
+      function renderSide(card, side) {
+        const preview = document.getElementById(`${side}-preview`);
+        preview.innerHTML = renderMarkdown(card[side], side);
+        const sideCount = state.comments.filter(comment => comment.cardId === card.id && comment.side === side && comment.scope === 'side').length;
+        const badge = root.querySelector(`[data-side-count="${side}"]`);
+        badge.textContent = String(sideCount);
+        badge.hidden = sideCount === 0;
+      }
+
+      function renderGlobalCommentMeta() {
+        const count = state.comments.length;
+        if (!count) {
+          commentMeta.hidden = true;
+          commentMeta.textContent = '';
+          return;
+        }
+        const affectedCards = new Set(state.comments.map(comment => comment.cardId)).size;
+        commentMeta.hidden = false;
+        commentMeta.textContent = `${count} ${wordForm(count, ['комментарий', 'комментария', 'комментариев'])} в ${affectedCards} ${wordForm(affectedCards, ['карточке', 'карточках', 'карточках'])}`;
+      }
+
+      function renderSummary() {
+        const card = currentCard();
+        const cardComments = card ? state.comments.filter(comment => comment.cardId === card.id) : [];
+        summary.hidden = cardComments.length === 0;
+        if (!cardComments.length) {
+          commentList.innerHTML = '';
+          return;
+        }
+        summaryTitle.textContent = `${cardComments.length} ${wordForm(cardComments.length, ['комментарий', 'комментария', 'комментариев'])} к карточке`;
+        commentList.innerHTML = cardComments.map(comment => {
+          const side = comment.side === 'front' ? 'Вопрос' : 'Ответ';
+          const target = comment.scope === 'side' ? `${side} целиком` : `${side} · строка ${comment.lineNumber + 1}`;
+          return `<article class="comment-item">
+            <div><div class="comment-item-context">${target}</div><div class="comment-item-text">${escapeHTML(comment.text)}</div></div>
+            <div class="comment-item-actions">
+              <button class="comment-edit" data-edit-comment="${escapeHTML(comment.id)}" type="button" aria-label="Редактировать комментарий">${iconEdit()}</button>
+              <button class="comment-delete" data-delete-comment="${escapeHTML(comment.id)}" type="button" aria-label="Удалить комментарий">${iconTrash()}</button>
+            </div>
+          </article>`;
+        }).join('');
+      }
+
+      function render() {
+        if (!state) return;
+        document.getElementById('deck-title').textContent = state.topic;
+        document.title = `${state.topic} — Mochi Reviewer`;
+        const card = currentCard();
+        exportButton.disabled = !card;
+        deleteButton.disabled = !card;
+        renderGlobalCommentMeta();
+        if (!card) {
+          counter.textContent = 'Карточек не осталось';
+          fill.style.width = '0%';
+          progress.setAttribute('aria-valuemax', '0');
+          progress.setAttribute('aria-valuenow', '0');
+          previous.disabled = true;
+          next.disabled = true;
+          document.getElementById('front-preview').innerHTML = '<div class="empty-copy">Коллекция пуста.</div>';
+          document.getElementById('back-preview').innerHTML = '';
+          root.querySelectorAll('.mochi-side-actions button').forEach(button => { button.disabled = true; });
+          closeEditors();
+          closeCommentComposer();
+          renderSummary();
+          return;
+        }
+        root.querySelectorAll('.mochi-side-actions button').forEach(button => { button.disabled = false; });
+        counter.textContent = `Карточка ${state.currentIndex + 1} из ${state.cards.length}`;
+        fill.style.width = `${((state.currentIndex + 1) / state.cards.length) * 100}%`;
+        progress.setAttribute('aria-valuemax', String(state.cards.length));
+        progress.setAttribute('aria-valuenow', String(state.currentIndex + 1));
+        previous.disabled = state.currentIndex === 0;
+        next.disabled = state.currentIndex === state.cards.length - 1;
+        if (!editingSide) {
+          renderSide(card, 'front');
+          renderSide(card, 'back');
+        }
+        renderSummary();
+      }
+
+      async function moveTo(index) {
+        if (!confirmDiscard()) return;
+        closeEditors();
+        closeCommentComposer();
+        await sendAction({ type: 'set_index', index });
+      }
+
+      function openEditor(side) {
+        const card = currentCard();
+        if (!card || !confirmDiscard()) return;
+        closeEditors();
+        closeCommentComposer();
+        editingSide = side;
+        editBaseline = card[side];
+        const input = document.getElementById(`${side}-input`);
+        input.value = card[side];
+        document.getElementById(`${side}-preview`).hidden = true;
+        document.getElementById(`${side}-editor`).hidden = false;
+        input.focus();
+      }
+
+      function openCommentComposer(side, lineNumber = null) {
+        const card = currentCard();
+        if (!card || !confirmDiscard()) return;
+        closeEditors();
+        editingCommentId = null;
+        commentTarget = { cardId: card.id, side, scope: lineNumber === null ? 'side' : 'line', lineNumber };
+        const sideDative = side === 'front' ? 'вопросу' : 'ответу';
+        const sideLocative = side === 'front' ? 'вопросе' : 'ответе';
+        commentKicker.textContent = 'Комментарий для Codex';
+        commentContext.textContent = lineNumber === null ? `К ${sideDative} целиком` : `К строке ${lineNumber + 1} в ${sideLocative}`;
+        commentInput.value = '';
+        saveComment.textContent = 'Добавить комментарий';
+        saveComment.disabled = true;
+        composer.hidden = false;
+        commentInput.focus();
+      }
+
+      function openCommentEditor(commentId) {
+        const comment = state.comments.find(item => item.id === commentId);
+        if (!comment || !confirmDiscard()) return;
+        closeEditors();
+        commentTarget = null;
+        editingCommentId = comment.id;
+        const side = comment.side === 'front' ? 'вопрос' : 'ответ';
+        commentKicker.textContent = 'Редактирование комментария';
+        commentContext.textContent = comment.scope === 'side' ? `${side} целиком` : `${side} · строка ${comment.lineNumber + 1}`;
+        commentInput.value = comment.text;
+        saveComment.textContent = 'Сохранить изменения';
+        saveComment.disabled = false;
+        composer.hidden = false;
+        commentInput.focus();
+        commentInput.setSelectionRange(commentInput.value.length, commentInput.value.length);
+      }
+
+      previous.addEventListener('click', () => moveTo(state.currentIndex - 1));
+      next.addEventListener('click', () => moveTo(state.currentIndex + 1));
+      commentInput.addEventListener('input', () => { saveComment.disabled = !commentInput.value.trim(); });
+      document.getElementById('close-comment').addEventListener('click', closeCommentComposer);
+      document.getElementById('cancel-comment').addEventListener('click', closeCommentComposer);
+
+      saveComment.addEventListener('click', async () => {
+        const text = commentInput.value.trim();
+        if (!text || (!commentTarget && !editingCommentId)) return;
+        const wasEditing = Boolean(editingCommentId);
+        const result = wasEditing
+          ? await sendAction({ type: 'update_comment', commentId: editingCommentId, text })
+          : await sendAction({ type: 'add_comment', ...commentTarget, text });
+        if (result) {
+          closeCommentComposer();
+          setToast(wasEditing ? 'Комментарий обновлён' : 'Комментарий сохранён');
+        }
+      });
+
+      deleteButton.addEventListener('click', async () => {
+        const card = currentCard();
+        if (!card || !confirmDiscard()) return;
+        closeEditors();
+        closeCommentComposer();
+        const result = await sendAction({ type: 'delete_card', cardId: card.id });
+        if (result) setToast('Карточка удалена из коллекции');
+      });
+
+      function exportFilename() {
+        const topic = String(state.topic || 'cards')
+          .trim()
+          .replace(/[^0-9A-Za-zА-Яа-яЁё_-]+/g, '_')
+          .replace(/_+/g, '_')
+          .replace(/^_+|_+$/g, '')
+          .slice(0, 80) || 'cards';
+        const date = new Date().toISOString().slice(0, 10);
+        return `mochi_${topic}_${date}.md`;
+      }
+
+      function exportMarkdown() {
+        const blocks = state.cards.map(card =>
+          `${String(card.front || '')}\n---\n${String(card.back || '')}`
+        );
+        return `${blocks.join('\n\n***\n\n')}\n`;
+      }
+
+      exportButton.addEventListener('click', async () => {
+        if (!currentCard() || requestInFlight) return;
+        requestInFlight = true;
+        exportButton.disabled = true;
+        try {
+          if (!window.showSaveFilePicker) {
+            throw new Error('Системное окно сохранения недоступно в этом браузере');
+          }
+          const handle = await window.showSaveFilePicker({
+            suggestedName: exportFilename(),
+            types: [{
+              description: 'Mochi Markdown',
+              accept: { 'text/markdown': ['.md'] }
+            }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(exportMarkdown());
+          await writable.close();
+          setToast(`Файл Mochi сохранён: ${handle.name}`, true);
+        } catch (error) {
+          if (error && error.name === 'AbortError') {
+            setToast('Экспорт отменён');
+          } else {
+            setToast(error.message || 'Экспорт не выполнен', true);
+          }
+        } finally {
+          requestInFlight = false;
+          exportButton.disabled = !currentCard();
+        }
+      });
+
+      root.addEventListener('click', async event => {
+        const editButton = event.target.closest('[data-edit]');
+        if (editButton) { openEditor(editButton.dataset.edit); return; }
+        const cancelEdit = event.target.closest('[data-cancel-edit]');
+        if (cancelEdit) { closeEditors(); render(); return; }
+        const saveEdit = event.target.closest('[data-save]');
+        if (saveEdit) {
+          const side = saveEdit.dataset.save;
+          const card = currentCard();
+          const value = document.getElementById(`${side}-input`).value;
+          if (!card || !value.trim()) { setToast('Сторона карточки не может быть пустой'); return; }
+          const result = await sendAction({ type: 'update_card', cardId: card.id, side, value });
+          if (result) { closeEditors(); render(); setToast('Текст карточки сохранён'); }
+          return;
+        }
+        const sideComment = event.target.closest('[data-comment-side]');
+        if (sideComment) { openCommentComposer(sideComment.dataset.commentSide); return; }
+        const lineComment = event.target.closest('[data-comment-line]');
+        if (lineComment) {
+          const [side, line] = lineComment.dataset.commentLine.split(':');
+          openCommentComposer(side, Number(line));
+          return;
+        }
+        const editComment = event.target.closest('[data-edit-comment]');
+        if (editComment) { openCommentEditor(editComment.dataset.editComment); return; }
+        const deleteComment = event.target.closest('[data-delete-comment]');
+        if (deleteComment) {
+          const result = await sendAction({ type: 'delete_comment', commentId: deleteComment.dataset.deleteComment });
+          if (result) setToast('Комментарий удалён');
+        }
+      });
+
+      window.addEventListener('beforeunload', event => {
+        if (!hasUnsavedEdit()) return;
+        event.preventDefault();
+        event.returnValue = '';
+      });
+
+      async function poll() {
+        try {
+          const latest = await fetchState();
+          if (!state || latest.revision !== state.revision) {
+            if (hasUnsavedEdit()) {
+              setToast('Коллекция обновилась. Сохраните или отмените текущую правку.', true);
+            } else {
+              state = latest;
+              closeEditors();
+              closeCommentComposer();
+              render();
+            }
+          }
+        } catch (error) {
+          if (!state) setToast(error.message || 'Панель недоступна', true);
+        }
+      }
+
+      fetchState().then(initial => {
+        state = initial;
+        render();
+        window.setInterval(poll, 1500);
+      }).catch(error => {
+        document.getElementById('deck-title').textContent = 'Не удалось открыть коллекцию';
+        counter.textContent = 'Сервер панели недоступен';
+        setToast(error.message || 'Ошибка загрузки', true);
+      });
+    })();
+  </script>
+</body>
+</html>
